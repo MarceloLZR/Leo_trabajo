@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaña de Donación de Sangre</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-app-compat.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.23.0/firebase-firestore-compat.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            border-bottom-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .content {
+            background: white;
+            border-radius: 0 0 15px 15px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            min-height: 500px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #dc3545;
+        }
+
+        .btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .table th, .table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #dc3545;
+            font-size: 1.5rem;
+        }
+
+        .code-display {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #dc3545;
+            border: 2px dashed #dc3545;
+            margin: 20px 0;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step.active .step-number {
+            background: #dc3545;
+            color: white;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #dc3545;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-message {
+            text-align: center;
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .success-message h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .success-message p {
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .table {
+                font-size: 14px;
+            }
+            
+            .table th, .table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩸 Campaña de Donación de Sangre</h1>
+            <p>Salvando vidas, un grupo a la vez</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('classification')">📊 Clasificación</button>
+            <button class="tab" onclick="showTab('register')">🩸 Registrar Donación</button>
+            <button class="tab" onclick="showTab('create')">👥 Crear Grupo</button>
+        </div>
+
+        <div class="content">
+            <!-- Clasificación Tab -->
+            <div id="classification" class="tab-content active">
+                <h2>🏆 Clasificación de Grupos</h2>
+                <div id="classification-content">
+                    <div class="loading-container" style="text-align: center; padding: 40px;">
+                        <div class="loading"></div>
+                        <p style="margin-top: 10px;">Cargando clasificación...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Registrar Donación Tab -->
+            <div id="register" class="tab-content">
+                <h2>🩸 Registrar Nueva Donación</h2>
+                
+                <div class="step-indicator">
+                    <div class="step active" id="step1">
+                        <div class="step-number">1</div>
+                        <span>Código del Grupo</span>
+                    </div>
+                    <div class="step" id="step2">
+                        <div class="step-number">2</div>
+                        <span>Volumen Donado</span>
+                    </div>
+                </div>
+
+                <div id="donation-step1">
+                    <div class="form-group">
+                        <label for="group-code">Código del Grupo:</label>
+                        <input type="text" id="group-code" placeholder="Ingresa el código de tu grupo">
+                    </div>
+                    <button class="btn" onclick="validateGroupCode()" id="validate-btn">
+                        Validar Código
+                    </button>
+                </div>
+
+                <div id="donation-step2" style="display: none;">
+                    <div class="alert alert-success">
+                        <strong>✅ Grupo encontrado:</strong> <span id="group-name-display"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="volume">Volumen donado (ml):</label>
+                        <input type="number" id="volume" placeholder="Ejemplo: 450" min="1">
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>ℹ️ Información:</strong> Cada 100ml = 1 punto
+                    </div>
+                    
+                    <button class="btn" onclick="registerDonation()" id="register-btn">
+                        Registrar Donación
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetDonationForm()" style="margin-left: 10px;">
+                        Volver
+                    </button>
+                </div>
+
+                <div id="success-container" style="display: none;">
+                    <div class="success-message">
+                        <h3>🎉 ¡Donación Registrada!</h3>
+                        <p><strong>Grupo:</strong> <span id="success-group-name"></span></p>
+                        <p><strong>Volumen:</strong> <span id="success-volume"></span> ml</p>
+                        <p><strong>Puntos obtenidos:</strong> <span id="success-points"></span></p>
+                        <p>¡Gracias por salvar vidas! 💝</p>
+                        <button class="btn" onclick="resetDonationForm()" style="margin-top: 15px;">
+                            Registrar Nueva Donación
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crear Grupo Tab -->
+            <div id="create" class="tab-content">
+                <h2>👥 Crear Nuevo Grupo</h2>
+                
+                <form id="create-group-form">
+                    <div class="form-group">
+                        <label for="group-name">Nombre del Grupo:</label>
+                        <input type="text" id="group-name" placeholder="Ejemplo: Familia García" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="members">Integrantes del Grupo:</label>
+                        <textarea id="members" rows="4" placeholder="Ingresa los nombres de los integrantes, uno por línea:&#10;Juan García&#10;María García&#10;Pedro García" required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="create-btn">
+                        Crear Grupo
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para mostrar código del grupo -->
+    <div id="group-code-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🎉 ¡Grupo Creado Exitosamente!</h3>
+            </div>
+            <p>Tu grupo ha sido creado. Guarda este código para registrar donaciones:</p>
+            <div class="code-display" id="generated-code"></div>
+            <p><strong>⚠️ Importante:</strong> Guarda este código en un lugar seguro. Lo necesitarás para registrar donaciones.</p>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="copyCode()">📋 Copiar Código</button>
+                <button class="btn btn-secondary" onclick="closeModal()" style="margin-left: 10px;">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyC8-NSkiDZiAL9kP7XDiWMpyNCGxUQmMns",
+            authDomain: "campana-donacion-sangre.firebaseapp.com",
+            projectId: "campana-donacion-sangre",
+            storageBucket: "campana-donacion-sangre.firebasestorage.app",
+            messagingSenderId: "928254623462",
+            appId: "1:928254623462:web:fb2a396825f82c1cd3c527",
+            measurementId: "G-3GQ9M3JMJ4"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Variables globales
+        let currentGroupData = null;
+
+        // Funciones de navegación
+        function showTab(tabName) {
+            // Ocultar todos los contenidos
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Desactivar todas las pestañas
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Mostrar el contenido activo
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Cargar datos específicos de la pestaña
+            if (tabName === 'classification') {
+                loadClassification();
+            }
+        }
+
+        // Generar código único para grupo
+        function generateGroupCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Cargar clasificación
+        async function loadClassification() {
+            const container = document.getElementById('classification-content');
+            
+            try {
+                const snapshot = await db.collection('groups').orderBy('points', 'desc').get();
+                
+                if (snapshot.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="icon">📊</div>
+                            <h3>No hay grupos registrados aún</h3>
+                            <p>Crea el primer grupo en la pestaña "Crear Grupo"</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let tableHTML = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>🏆 Posición</th>
+                                <th>👥 Nombre del Grupo</th>
+                                <th>⭐ Puntos</th>
+                                <th>🩸 Donaciones (ml)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let position = 1;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const totalVolume = data.points * 100;
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>
+                                ${position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : position}
+                            </td>
+                            <td><strong>${data.name}</strong></td>
+                            <td><span style="color: #dc3545; font-weight: bold;">${data.points}</span></td>
+                            <td>${totalVolume.toLocaleString()} ml</td>
+                        </tr>
+                    `;
+                    position++;
+                });
+                
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+                
+                container.innerHTML = tableHTML;
+            } catch (error) {
+                console.error('Error loading classification:', error);
+                container.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>Error:</strong> No se pudo cargar la clasificación. Verifica tu conexión a Firebase.
+                    </div>
+                `;
+            }
+        }
+
+        // Crear grupo
+        document.getElementById('create-group-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const groupName = document.getElementById('group-name').value.trim();
+            const membersText = document.getElementById('members').value.trim();
+            const createBtn = document.getElementById('create-btn');
+            
+            if (!groupName || !membersText) {
+                alert('Por favor completa todos los campos');
+                return;
+            }
+            
+            // Procesar miembros
+            const members = membersText.split('\n')
+                .map(member => member.trim())
+                .filter(member => member.length > 0);
+            
+            if (members.length === 0) {
+                alert('Por favor ingresa al menos un integrante');
+                return;
+            }
+            
+            createBtn.disabled = true;
+            createBtn.innerHTML = '<div class="loading"></div> Creando...';
+            
+            try {
+                const groupCode = generateGroupCode();
+                
+                await db.collection('groups').doc(groupCode).set({
+                    name: groupName,
+                    members: members,
+                    points: 0,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    donations: []
+                });
+                
+                // Mostrar modal con código
+                document.getElementById('generated-code').textContent = groupCode;
+                document.getElementById('group-code-modal').style.display = 'block';
+                
+                // Limpiar formulario
+                document.getElementById('create-group-form').reset();
+                
+            } catch (error) {
+                console.error('Error creating group:', error);
+                alert('Error al crear el grupo. Intenta de nuevo.');
+            }
+            
+            createBtn.disabled = false;
+            createBtn.innerHTML = 'Crear Grupo';
+        });
+
+        // Validar código de grupo
+        async function validateGroupCode() {
+            const code = document.getElementById('group-code').value.trim().toUpperCase();
+            const validateBtn = document.getElementById('validate-btn');
+            
+            if (!code) {
+                alert('Por favor ingresa un código');
+                return;
+            }
+            
+            validateBtn.disabled = true;
+            validateBtn.innerHTML = '<div class="loading"></div> Validando...';
+            
+            try {
+                console.log('Validando código:', code);
+                const doc = await db.collection('groups').doc(code).get();
+                console.log('Resultado de la consulta:', doc.exists);
+                
+                if (doc.exists) {
+                    currentGroupData = { id: doc.id, ...doc.data() };
+                    console.log('Datos del grupo cargados:', currentGroupData);
+                    
+                    document.getElementById('group-name-display').textContent = currentGroupData.name;
+                    
+                    // Cambiar a step 2
+                    document.getElementById('step1').classList.remove('active');
+                    document.getElementById('step2').classList.add('active');
+                    document.getElementById('donation-step1').style.display = 'none';
+                    document.getElementById('donation-step2').style.display = 'block';
+                } else {
+                    console.log('Código no encontrado en la base de datos');
+                    alert('Código de grupo no válido. Verifica el código e intenta de nuevo.');
+                }
+            } catch (error) {
+                console.error('Error validating group code:', error);
+                console.error('Mensaje del error:', error.message);
+                console.error('Código del error:', error.code);
+                
+                let errorMessage = 'Error al validar el código. ';
+                if (error.code === 'permission-denied') {
+                    errorMessage += 'Permisos insuficientes en Firebase.';
+                } else if (error.code === 'unavailable') {
+                    errorMessage += 'Servicio no disponible. Verifica tu conexión.';
+                } else {
+                    errorMessage += 'Intenta de nuevo.';
+                }
+                
+                alert(errorMessage);
+            }
+            
+            validateBtn.disabled = false;
+            validateBtn.innerHTML = 'Validar Código';
+        }
+
+        // Registrar donación - FUNCIÓN CORREGIDA
+        async function registerDonation() {
+            const volume = parseInt(document.getElementById('volume').value);
+            const registerBtn = document.getElementById('register-btn');
+            
+            if (!volume || volume <= 0) {
+                alert('Por favor ingresa un volumen válido');
+                return;
+            }
+            
+            if (!currentGroupData || !currentGroupData.id) {
+                alert('Error: No se encontró información del grupo. Intenta validar el código nuevamente.');
+                return;
+            }
+            
+            registerBtn.disabled = true;
+            registerBtn.innerHTML = '<div class="loading"></div> Registrando...';
+            
+            try {
+                console.log('Iniciando registro de donación...');
+                console.log('Grupo:', currentGroupData);
+                console.log('Volumen:', volume);
+                
+                const points = Math.floor(volume / 100);
+                
+                // Crear objeto de donación con timestamp de JavaScript en lugar de serverTimestamp
+                const donationData = {
+                    volume: volume,
+                    points: points,
+                    timestamp: new Date() // Usar Date() de JavaScript en lugar de serverTimestamp
+                };
+                
+                console.log('Datos de donación:', donationData);
+                console.log('ID del documento:', currentGroupData.id);
+                
+                // Verificar que el documento aún existe antes de actualizarlo
+                const docRef = db.collection('groups').doc(currentGroupData.id);
+                const docSnap = await docRef.get();
+                
+                if (!docSnap.exists) {
+                    throw new Error('El grupo ya no existe en la base de datos');
+                }
+                
+                console.log('Documento encontrado, procediendo con la actualización...');
+                
+                // Actualizar el documento con los puntos y la donación
+                await docRef.update({
+                    points: firebase.firestore.FieldValue.increment(points),
+                    donations: firebase.firestore.FieldValue.arrayUnion(donationData),
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp() // Agregar timestamp de última actualización
+                });
+                
+                console.log('Donación registrada exitosamente');
+                
+                // Mostrar mensaje de éxito
+                document.getElementById('success-group-name').textContent = currentGroupData.name;
+                document.getElementById('success-volume').textContent = volume;
+                document.getElementById('success-points').textContent = points;
+                
+                // Ocultar formularios y mostrar éxito
+                document.getElementById('donation-step1').style.display = 'none';
+                document.getElementById('donation-step2').style.display = 'none';
+                document.getElementById('success-container').style.display = 'block';
+                
+                // Ocultar indicadores de paso
+                document.querySelector('.step-indicator').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error completo:', error);
+                console.error('Mensaje del error:', error.message);
+                console.error('Código del error:', error.code);
+                
+                let errorMessage = 'Error al registrar la donación. ';
+                
+                if (error.code === 'permission-denied') {
+                    errorMessage += 'Permisos insuficientes en Firebase.';
+                } else if (error.code === 'not-found') {
+                    errorMessage += 'El grupo no fue encontrado.';
+                } else if (error.code === 'unavailable') {
+                    errorMessage += 'Servicio no disponible. Verifica tu conexión.';
+                } else if (error.message) {
+                    errorMessage += error.message;
+                } else {
+                    errorMessage += 'Intenta de nuevo.';
+                }
+                
+                alert(errorMessage);
+            }
+            
+            registerBtn.disabled = false;
+            registerBtn.innerHTML = 'Registrar Donación';
+        }
+
+        // Resetear formulario de donación
+        function resetDonationForm() {
+            currentGroupData = null;
+            document.getElementById('group-code').value = '';
+            document.getElementById('volume').value = '';
+            
+            // Mostrar indicadores de paso
+            document.querySelector('.step-indicator').style.display = 'flex';
+            
+            // Resetear pasos
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('step2').classList.remove('active');
+            
+            // Mostrar/ocultar secciones correctas
+            document.getElementById('donation-step1').style.display = 'block';
+            document.getElementById('donation-step2').style.display = 'none';
+            document.getElementById('success-container').style.display = 'none';
+            
+            // Resetear botones
+            const validateBtn = document.getElementById('validate-btn');
+            const registerBtn = document.getElementById('register-btn');
+            
+            if (validateBtn) {
+                validateBtn.disabled = false;
+                validateBtn.innerHTML = 'Validar Código';
+            }
+            
+            if (registerBtn) {
+                registerBtn.disabled = false;
+                registerBtn.innerHTML = 'Registrar Donación';
+            }
+        }
+
+        // Funciones del modal
+        function copyCode() {
+            const code = document.getElementById('generated-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('¡Código copiado al portapapeles!');
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('group-code-modal').style.display = 'none';
+        }
+
+        // Cargar clasificación al iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            loadClassification();
+        });
+
+        // Cerrar modal al hacer clic fuera de él
+        window.onclick = function(event) {
+            const modal = document.getElementById('group-code-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

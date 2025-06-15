@@ -1,0 +1,13 @@
+{
+  "name": "campana-donacion-sangre",
+  "version": "1.0.0",
+  "description": "Aplicación web para gestionar campaña de donación de sangre",
+  "scripts": {
+    "serve": "firebase serve",
+    "deploy": "firebase deploy",
+    "build": "echo 'No build process needed for static files'"
+  },
+  "devDependencies": {
+    "firebase-tools": "^12.0.0"
+  }
+}

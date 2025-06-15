@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Reglas para la colección de grupos
+    match /groups/{groupId} {
+      // Permitir lectura a todos (para mostrar clasificación)
+      allow read: if true;
+      
+      // Permitir crear grupos (validar datos básicos)
+      allow create: if request.auth == null &&
+                    resource == null &&
+                    isValidGroupData(request.resource.data);
+      
+      // Permitir actualizar solo para agregar donaciones
+      allow update: if request.auth == null &&
+                    resource != null &&
+                    isValidDonationUpdate(request.resource.data, resource.data);
+    }
+    
+    // Función para validar datos del grupo
+    function isValidGroupData(data) {
+      return data.keys().hasAll(['name', 'members', 'points', 'donations']) &&
+             data.name is string &&
+             data.name.size() > 0 &&
+             data.name.size() <= 100 &&
+             data.members is list &&
+             data.members.size() > 0 &&
+             data.members.size() <= 20 &&
+             data.points == 0 &&
+             data.donations is list &&
+             data.donations.size() == 0;
+    }
+    
+    // Función para validar actualizaciones de donación
+    function isValidDonationUpdate(newData, oldData) {
+      let pointsDiff = newData.points - oldData.points;
+      let donationsDiff = newData.donations.size() - oldData.donations.size();
+      
+      return newData.name == oldData.name &&
+             newData.members == oldData.members &&
+             pointsDiff > 0 &&
+             pointsDiff <= 50 && // Máximo 5000ml por donación
+             donationsDiff == 1; // Solo se puede agregar una donación a la vez
+    }
+  }
+}
